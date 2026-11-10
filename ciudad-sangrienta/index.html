@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Ciudad Sangrienta | Escapa del Sector Cero</title>
+<meta name="description" content="La Ciudad Sangrienta: laberinto 3D estilo Pac-Man con enemigos que usan pathfinding y raycasting. Recoge los 36 núcleos y escapa.">
+<meta name="theme-color" content="#12051f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Permanent+Marker&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#12051f;--bg2:#1c0833;--pur:#7c2ae8;--pur2:#b06bff;--grn:#9dff1a;--grn2:#5ec400;--wht:#f7f2ff;--red:#e11d48;--mut:#c9b8e6;
+--d:'Bangers','Impact',sans-serif;--m:'Permanent Marker','Comic Sans MS',cursive;--b:'Outfit','Segoe UI',system-ui,sans-serif}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{background:var(--bg);color:var(--wht);font-family:var(--b);line-height:1.6;overflow-x:hidden;
+background-image:radial-gradient(circle at 15% 10%,#3b0e6e55,transparent 40%),radial-gradient(circle at 90% 60%,#2f6d0033,transparent 45%)}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--grn);outline-offset:3px}
+.skip{position:absolute;left:-999px}.skip:focus{left:8px;top:8px;background:var(--grn);color:#000;padding:8px;z-index:99}
+/* header */
+header{position:fixed;inset:0 0 auto;z-index:50;display:flex;justify-content:space-between;align-items:center;padding:10px 4vw;background:#12051fdd;backdrop-filter:blur(8px);border-bottom:3px solid var(--pur)}
+.logo{font-family:var(--d);font-size:1.8rem;letter-spacing:2px;text-decoration:none;color:var(--wht);transform:rotate(-2deg)}
+.logo b{color:var(--grn);font-weight:400}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav a{font-family:var(--d);letter-spacing:1.5px;font-size:1.15rem;text-decoration:none;padding:4px 12px;border-radius:4px;transition:.2s}
+nav a:hover{background:var(--pur);transform:rotate(-3deg)}
+nav a.play{background:var(--grn);color:#111}
+nav a.play:hover{background:var(--wht)}
+/* layout */
+section{position:relative;padding:96px 6vw;max-width:1200px;margin:auto}
+h2{font-family:var(--d);font-weight:400;font-size:clamp(2.6rem,7vw,5rem);line-height:1;letter-spacing:2px;margin-bottom:12px}
+h2 em{font-style:normal;color:var(--grn);text-shadow:3px 3px 0 var(--pur)}
+.lead{color:var(--mut);max-width:60ch;font-size:1.1rem;margin-bottom:40px}
+.scrawl{font-family:var(--m);color:var(--grn);transform:rotate(-3deg);display:inline-block}
+/* hero */
+.hero{min-height:100vh;padding-top:120px;display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center;max-width:1300px}
+.jaja{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.jaja span{position:absolute;font-family:var(--m);white-space:nowrap;color:transparent;-webkit-text-stroke:2px var(--pur);opacity:.45;user-select:none}
+.jaja .g{-webkit-text-stroke-color:var(--grn);opacity:.3}
+.hero>*:not(.jaja){position:relative;z-index:1}
+.tag{display:inline-block;font-family:var(--d);letter-spacing:3px;background:var(--pur);padding:2px 14px;transform:rotate(-2deg);font-size:1.25rem;border:2px solid var(--wht)}
+h1{font-family:var(--d);font-weight:400;font-size:clamp(4rem,12vw,9rem);line-height:.88;letter-spacing:3px;margin:18px 0 8px;text-shadow:5px 5px 0 var(--pur),9px 9px 0 #00000055}
+h1 span{display:block;color:var(--grn);transform:rotate(-2deg);text-shadow:5px 5px 0 var(--pur)}
+.punch{font-family:var(--m);font-size:clamp(1.3rem,3vw,2rem);color:var(--grn);margin:18px 0 8px;transform:rotate(-1deg)}
+.hero p.d{color:var(--mut);max-width:52ch;font-size:1.1rem}
+.cta{display:flex;gap:14px;flex-wrap:wrap;margin:28px 0}
+.btn{font-family:var(--d);letter-spacing:2px;font-size:1.5rem;padding:10px 28px;text-decoration:none;border:3px solid var(--wht);border-radius:6px;transition:.2s;display:inline-block}
+.btn.p{background:var(--grn);color:#111;border-color:#111;box-shadow:6px 6px 0 var(--pur)}
+.btn.p:hover{transform:translate(3px,3px) rotate(-2deg);box-shadow:2px 2px 0 var(--pur)}
+.btn.s:hover{background:var(--pur);transform:rotate(2deg)}
+.metrics{display:flex;gap:14px;flex-wrap:wrap}
+.metrics div{background:var(--bg2);border:2px dashed var(--pur2);padding:8px 18px;border-radius:8px}
+.metrics b{font-family:var(--d);font-weight:400;font-size:2.2rem;color:var(--grn);display:block;line-height:1}
+.metrics small{color:var(--mut)}
+.card{position:relative;transform:rotate(3deg);background:var(--wht);padding:12px;border-radius:18px;border:4px solid var(--pur);box-shadow:14px 14px 0 var(--pur),0 0 80px #7c2ae88a;max-width:430px;margin:auto;cursor:pointer;transition:.3s}
+.card:hover{transform:rotate(-1deg) scale(1.03)}
+.card img{width:100%;display:block;border-radius:10px}
+.card i{position:absolute;font-style:normal;font-size:2rem;color:var(--red)}
+.card .a{top:8px;left:14px}.card .b{bottom:6px;right:14px;transform:rotate(180deg)}
+.stamp{position:absolute;bottom:-18px;left:-24px;background:var(--grn);color:#111;font-family:var(--d);padding:2px 14px;font-size:1.3rem;transform:rotate(-6deg);border:3px solid #111}
+.ja{position:fixed;font-family:var(--d);color:var(--grn);text-shadow:3px 3px 0 var(--pur);pointer-events:none;z-index:60;animation:pop 1.2s ease-out forwards}
+@keyframes pop{to{transform:translateY(-120px) rotate(var(--r));opacity:0}}
+/* marquee */
+.band{background:var(--grn);color:#111;transform:rotate(-1.5deg);margin:20px -3vw;overflow:hidden;border-block:4px solid #111;position:relative;z-index:2}
+.band div{display:flex;width:max-content;animation:mq 22s linear infinite;font-family:var(--d);font-size:2.2rem;letter-spacing:3px;padding:4px 0}
+.band span{padding:0 22px}
+@keyframes mq{to{transform:translateX(-50%)}}
+/* story */
+.zig{height:34px;background:linear-gradient(135deg,var(--bg) 25%,transparent 25%) -17px 0,linear-gradient(225deg,var(--bg) 25%,transparent 25%) -17px 0;background-size:34px 34px;background-color:var(--pur);margin:0 -6vw 30px}
+.chap{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px}
+.chap article{background:var(--bg2);border:3px solid var(--pur);padding:24px;border-radius:4px 22px 4px 22px;transition:.25s}
+.chap article:nth-child(even){border-color:var(--grn);border-radius:22px 4px 22px 4px}
+.chap article:hover{transform:rotate(-1.5deg) translateY(-4px)}
+.chap h3,.rules h3,.ctl h3{font-family:var(--d);font-weight:400;font-size:1.9rem;letter-spacing:1.5px}
+.chap h3{margin:4px 0 8px;color:var(--grn)}
+.chap p,.rules p{color:var(--mut)}
+.kicker{font-family:var(--m);color:var(--pur2)}
+/* character */
+.char{display:grid;grid-template-columns:.8fr 1.2fr;gap:50px;align-items:center}
+.char .frame{background:radial-gradient(circle,var(--pur) 0,var(--bg2) 70%);border:4px solid var(--grn);border-radius:20px;padding:16px;transform:rotate(-2deg);box-shadow:-12px 12px 0 #00000066}
+.char .frame img{width:100%;border-radius:12px;display:block}
+.facts dt{font-family:var(--d);letter-spacing:2px;font-size:1.4rem;color:var(--grn);margin-top:14px}
+.facts dd{color:var(--mut)}
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.chips span{font-family:var(--m);background:var(--pur);padding:4px 14px;border-radius:30px;border:2px solid var(--wht);transition:.2s}
+.chips span:nth-child(2n){background:var(--grn);color:#111}
+.chips span:hover{transform:rotate(-6deg) scale(1.1)}
+/* mechanics */
+.mech{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+.ctl{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.key{background:var(--wht);color:#111;border-radius:12px;border-bottom:8px solid var(--pur2);padding:14px 20px;text-align:center;min-width:130px;font-family:var(--d)}
+.key b{display:block;font-size:3rem;font-weight:400;line-height:1;color:var(--pur)}
+.key.r b{color:var(--red)}
+.rules{display:grid;gap:14px}
+.rules div{background:var(--bg2);border-left:8px solid var(--grn);padding:14px 18px;border-radius:0 14px 14px 0}
+.rules div:nth-child(2n){border-color:var(--pur2)}
+.rules h3{font-size:1.5rem;color:var(--wht)}
+.end{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+.win,.lose{padding:16px;text-align:center;font-family:var(--d);font-size:1.5rem;letter-spacing:1.5px;border-radius:10px}
+.win{background:var(--grn);color:#111}.lose{background:var(--red)}
+/* data */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:18px;margin-bottom:34px}
+.stat{background:var(--wht);color:#111;padding:20px 12px;text-align:center;border-radius:14px;border:4px solid var(--pur);transition:.25s}
+.stat:nth-child(even){background:var(--grn);border-color:#111}
+.stat:hover{transform:rotate(-3deg) scale(1.05)}
+.stat b{font-family:var(--d);font-weight:400;font-size:4rem;line-height:1;color:var(--pur);display:block}
+.stat:nth-child(even) b{color:#111}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+.panel{background:var(--bg2);border:3px solid var(--pur);border-radius:16px;padding:24px}
+.panel h3{font-family:var(--d);font-weight:400;font-size:1.7rem;letter-spacing:2px;color:var(--grn);margin-bottom:12px}
+.panel dl div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed #7c2ae899;padding:7px 0}
+.panel dt{color:var(--mut)}.panel dd{font-weight:800}
+.bar{margin:12px 0}.bar p{display:flex;justify-content:space-between}
+.bar i{display:block;height:16px;background:#000;border-radius:20px;overflow:hidden;border:2px solid var(--pur)}
+.bar i s{display:block;height:100%;background:linear-gradient(90deg,var(--pur),var(--grn));border-radius:20px}
+.loop{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px;justify-content:center;font-family:var(--d);font-size:1.5rem;letter-spacing:2px}
+.loop span{background:var(--pur);padding:6px 20px;border-radius:30px;border:2px solid var(--wht)}
+.loop span:nth-child(2n){background:var(--grn);color:#111}
+.note{font-size:.85rem;color:var(--mut);margin-top:8px}
+/* play */
+#jugar{max-width:1250px;text-align:center}
+.screen{position:relative;border:6px solid var(--grn);border-radius:16px;box-shadow:0 0 0 6px var(--pur),0 0 80px #7c2ae8aa;background:#000;aspect-ratio:16/9;overflow:hidden}
+.screen iframe{width:100%;height:100%;border:0;display:block}
+.screen:fullscreen{border-radius:0;border:0;aspect-ratio:auto}
+.bar2{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin:22px 0}
+.bar2 button{cursor:pointer;background:var(--bg2);color:var(--wht);font-family:var(--d);letter-spacing:2px;font-size:1.3rem;border:3px solid var(--pur2);padding:6px 22px;border-radius:6px}
+.bar2 button:hover{background:var(--pur)}
+.req{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;text-align:left;margin-top:30px}
+.req div{background:var(--bg2);border:2px dashed var(--grn);padding:16px;border-radius:12px}
+.req h3{font-family:var(--d);font-weight:400;letter-spacing:1.5px;font-size:1.4rem;color:var(--grn)}
+.req p{color:var(--mut);font-size:.95rem}
+footer{text-align:center;padding:50px 6vw 40px;border-top:6px solid var(--pur);background:var(--bg2)}
+footer .logo{font-size:2.6rem;display:inline-block}
+footer p{color:var(--mut);margin-top:8px}
+footer .scrawl{font-size:1.6rem;margin-top:14px}
+@media(max-width:850px){.hero,.char,.mech{grid-template-columns:1fr}.hero{padding-top:150px}.card{max-width:340px}header{flex-direction:column;gap:4px}nav a{font-size:1rem;padding:2px 8px}section{padding:70px 6vw}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+
+/* también te puede gustar */
+#mas{text-align:center}
+.mas-card{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:center;text-align:left;max-width:900px;margin:30px auto 0;background:var(--bg2);border:4px solid var(--pur);border-radius:18px;padding:18px;box-shadow:10px 10px 0 var(--pur);transition:.25s}
+.mas-card:hover{transform:rotate(-1deg) scale(1.02)}
+.mas-card img{width:100%;display:block;border-radius:10px;border:3px solid #111}
+.mas-card h3{font-family:var(--d);font-weight:400;font-size:2.4rem;letter-spacing:2px;line-height:1.05;margin:4px 0 8px;color:var(--grn)}
+.mas-card p{color:var(--mut);margin-bottom:16px}
+.mas-card .tag2{font-family:var(--d);letter-spacing:2px;background:var(--red);color:#fff;padding:2px 10px;border-radius:4px;font-size:1rem}
+@media(max-width:700px){.mas-card{grid-template-columns:1fr}}
+.hero>*{min-width:0}@media(max-width:900px){.hero{grid-template-columns:minmax(0,1fr)}h1{font-size:clamp(2.4rem,12.5vw,7rem)}.metrics{flex-wrap:wrap}}</style>
+</head>
+<body>
+<a class="skip" href="#historia">Saltar al contenido</a>
+<header>
+ <a class="logo" href="#inicio" aria-label="La Ciudad Sangrienta, inicio">CIUDAD <b>SANGRIENTA</b> ♠</a>
+ <nav aria-label="Principal">
+  <a href="#historia">Historia</a><a href="#personaje">Personaje</a><a href="#mecanicas">Mecánicas</a><a href="#datos">Datos</a><a href="#mas">También te puede gustar</a><a class="play" href="#jugar">Jugar ahora</a>
+ </nav>
+</header>
+<main id="inicio">
+<section class="hero">
+ <div class="jaja" aria-hidden="true" id="jaja"></div>
+ <div>
+  <span class="tag">LABERINTO 3D · UNIDAD 3</span>
+  <h1>CIUDAD<span>SANGRIENTA</span></h1>
+  <p class="punch">Recoge los núcleos. Evita a los bumeranes. Escapa del Sector Cero.</p>
+  <p class="d">El Sujeto 001 debe salir de un laberinto 3D inspirado en Pac-Man. Dos enemigos patrullan una ruta fija y te persiguen en cuanto te ven. Solo hay una salida y está cerrada hasta que recojas todo.</p>
+  <div class="cta">
+   <a class="btn p" href="#jugar">JUGAR AHORA</a>
+   <a class="btn s" href="#historia">Conoce la historia</a>
+  </div>
+  <div class="metrics" aria-label="Datos rápidos">
+   <div><b>36</b><small>núcleos a recoger</small></div>
+   <div><b>2</b><small>enemigos</small></div>
+   <div><b>← ↑ ↓ →</b><small>teclas de control</small></div>
+  </div>
+ </div>
+ <div style="position:relative">
+  <div class="card" id="card" title="Haz clic" role="img" aria-label="Escena del laberinto con el personaje y dos enemigos">
+   <i class="a">♥</i><i class="b">♥</i>
+   <img src="../img/escena.jpg" alt="Escena del juego: laberinto 3D con el personaje y dos enemigos">
+   <span class="stamp">¡CLIC = BUM!</span>
+  </div>
+ </div>
+</section>
+
+<div class="band" aria-hidden="true"><div>
+ <span>SECTOR CERO</span><span>♠</span><span>RECOGE</span><span>♦</span><span>SECTOR CERO</span><span>♥</span><span>EVITA</span><span>♣</span><span>SECTOR CERO</span><span>♠</span><span>ESCAPA</span><span>♦</span>
+ <span>SECTOR CERO</span><span>♠</span><span>RECOGE</span><span>♦</span><span>SECTOR CERO</span><span>♥</span><span>EVITA</span><span>♣</span><span>SECTOR CERO</span><span>♠</span><span>ESCAPA</span><span>♦</span>
+</div></div>
+
+<section id="historia">
+ <p class="scrawl">la historia</p>
+ <h2>EL SECTOR CERO <em>NO TE SUELTA.</em></h2>
+ <p class="lead">Un laberinto de pasillos de ladrillo y luces rojas del que solo se sale recogiendo hasta el último núcleo de energía.</p>
+ <div class="zig" aria-hidden="true"></div>
+ <div class="chap">
+  <article><span class="kicker">Capítulo 1 · El despertar</span><h3>El Sujeto 001</h3><p>Comienza en la celda F8, justo después de la entrada. Frente a él se abre el laberinto de 11 columnas por 9 filas, con la puerta de salida en el extremo superior.</p></article>
+  <article><span class="kicker">Capítulo 2 · Los núcleos</span><h3>36 núcleos de energía</h3><p>Repartidos por las celdas libres del laberinto. Cada núcleo suma 10 puntos y desaparece al recogerlo.</p></article>
+  <article><span class="kicker">Capítulo 3 · Los bumeranes</span><h3>Dos enemigos que vigilan</h3><p>Cada uno recorre una ruta de cuatro puntos. Si te ven, abandonan la patrulla y te persiguen; si pierden el contacto, vuelven a su ruta.</p></article>
+  <article><span class="kicker">Capítulo 4 · La salida</span><h3>La puerta se abre al final</h3><p>Permanece cerrada hasta que no quede ningún núcleo. Si un enemigo te toca, la partida termina de inmediato: no hay vidas.</p></article>
+ </div>
+</section>
+
+<section id="personaje">
+ <p class="scrawl">el protagonista</p>
+ <h2>CONOCE AL <em>SUJETO 001.</em></h2>
+ <p class="lead">El mismo personaje 3D de pelo verde de la práctica anterior, ahora atrapado en el Sector Cero.</p>
+ <div class="char">
+  <div class="frame"><img src="../img/runner_personaje.jpg" alt="Ilustración 3D de cuerpo completo del personaje sobre una base de piedra"></div>
+  <div>
+   <dl class="facts">
+    <dt>Rol</dt><dd>Protagonista: recoge los núcleos y busca la salida del laberinto.</dd>
+    <dt>Movimiento</dt><dd>Se mueve con las flechas del teclado, una dirección a la vez, a 3 unidades por segundo. Gira hacia donde avanza y no puede atravesar las paredes.</dd>
+    <dt>Animaciones</dt><dd>Quieto cuando no se presiona ninguna tecla, Correr mientras se mueve y Morir cuando un enemigo lo toca.</dd>
+    <dt>Rasgos estéticos</dt><dd>Cabello verde alborotado, rostro blanco con cicatrices rojas, chaleco verde oliva, pantalón cargo y botas de combate. Estilo 3D cartoon realista.</dd>
+   </dl>
+   <div class="chips"><span>Pelo verde</span><span>Quieto</span><span>Correr</span><span>Morir</span><span>Sujeto 001</span></div>
+  </div>
+ </div>
+</section>
+
+<section id="mecanicas">
+ <p class="scrawl">las reglas del laberinto</p>
+ <h2>RECOGE TODO. <em>NO TE DEJES VER.</em></h2>
+ <p class="lead">Mueve al personaje con las flechas y usa las demás teclas para ayudarte.</p>
+ <div class="mech">
+  <div class="ctl">
+   <h3 style="width:100%">Controles · Teclado (PC)</h3>
+   <div class="key"><b>← ↑ ↓ →</b>Mover<br><small>una dirección a la vez</small></div>
+   <div class="key"><b>R</b>Reiniciar<br><small>en cualquier momento</small></div>
+   <div class="key"><b>V</b>Rayos<br><small>muestra la visión enemiga</small></div>
+   <div class="key"><b>C</b>Mapa<br><small>vista completa</small></div>
+   <p style="color:var(--mut);width:100%">Presiona Enter en la pantalla de inicio para empezar. Solo se necesita teclado.</p>
+   <div class="end"><div class="win" style="grid-column:1/-1">VICTORIA: recoger los 36 núcleos y salir por la puerta</div><div class="lose" style="grid-column:1/-1">DERROTA: que un enemigo te toque</div></div>
+  </div>
+  <div class="rules">
+   <div><h3>Pathfinding</h3><p>Los enemigos usan un NavMesh y un NavMeshAgent para hallar solos el camino a su destino sin atravesar paredes.</p></div>
+   <div><h3>Raycasting</h3><p>Lanzan un rayo hacia ti: si lo primero que toca eres tú y estás a 8 unidades o menos, te ven. Si toca una pared, no.</p></div>
+   <div><h3>Estados</h3><p>El enemigo alterna entre Patrulla y Persecución. Tu personaje alterna entre Quieto, Correr y Morir.</p></div>
+   <div><h3>Puerta de salida</h3><p>Está cerrada hasta que no quede ningún núcleo. Con la puerta abierta, llegar a ella te da la victoria.</p></div>
+  </div>
+ </div>
+</section>
+
+<section id="datos">
+ <p class="scrawl">los números</p>
+ <h2>EL JUEGO EN <em>CIFRAS.</em></h2>
+ <p class="lead">Resumen de los parámetros clave del proyecto.</p>
+ <div class="stats">
+  <div class="stat"><b>36</b>Núcleos a recoger</div>
+  <div class="stat"><b>2</b>Enemigos</div>
+  <div class="stat"><b>11×9</b>Celdas del laberinto</div>
+  <div class="stat"><b>10</b>Puntos por núcleo</div>
+  <div class="stat"><b>8</b>Unidades de visión</div>
+ </div>
+ <div class="cols">
+  <div class="panel"><h3>Ficha técnica</h3><dl>
+   <div><dt>Género</dt><dd>Laberinto 3D estilo Pac-Man</dd></div>
+   <div><dt>Motor</dt><dd>Unity (WebGL)</dd></div>
+   <div><dt>Modo</dt><dd>Un jugador</dd></div>
+   <div><dt>Cámara</dt><dd>Vista desde arriba</dd></div>
+   <div><dt>Celda</dt><dd>2 × 2 unidades</dd></div>
+   <div><dt>Animaciones</dt><dd>Quieto · Correr · Morir</dd></div></dl></div>
+  <div class="panel"><h3>Velocidades (unidades por segundo)</h3>
+   <div class="bar"><p><span>Jugador</span><span>3</span></p><i><s style="width:75%"></s></i></div>
+   <div class="bar"><p><span>Enemigo en patrulla</span><span>2,5</span></p><i><s style="width:62.5%"></s></i></div>
+   <div class="bar"><p><span>Enemigo en persecución</span><span>3,5</span></p><i><s style="width:87.5%"></s></i></div>
+   <p class="note">La barra completa equivale a 4 unidades por segundo.</p></div>
+ </div>
+ <div class="loop" aria-label="Bucle de juego"><span>RECOGE</span><span>OBSERVA</span><span>EVITA</span><span>ABRE LA PUERTA</span><span>¡ESCAPA!</span></div>
+</section>
+
+<section id="jugar">
+ <p class="scrawl">tu turno</p>
+ <h2>¿TE ATREVES A <em>ESCAPAR?</em></h2>
+ <p class="lead" style="margin-inline:auto">El juego se ejecuta aquí mismo. Haz clic dentro de la pantalla para activar el teclado, presiona Enter y mueve con las flechas.</p>
+ <div class="screen" id="screen">
+  <iframe id="game" title="La Ciudad Sangrienta - Unity WebGL" src="https://illustrious-blancmange-930e81.netlify.app/" allow="fullscreen; autoplay; gamepad" allowfullscreen loading="lazy"></iframe>
+ </div>
+ <div class="bar2">
+  <button type="button" id="fs">Pantalla completa</button>
+  <button type="button" id="rl">Reiniciar juego</button>
+ </div>
+ <div class="req">
+  <div><h3>Requisitos mínimos</h3><p>Navegador con WebGL 2.0 (Chrome, Edge, Firefox o Safari actualizados) y conexión a internet.</p></div>
+  <div><h3>Instrucciones</h3><p>Espera a que cargue, haz clic en el juego, presiona Enter y usa las flechas. R reinicia, V muestra los rayos y C cambia la vista.</p></div>
+  <div><h3>Si no carga</h3><p>Activa la aceleración por hardware del navegador, recarga con el botón «Reiniciar juego» o prueba con otro navegador.</p></div>
+ </div>
+</section>
+
+<section id="mas">
+ <p class="scrawl">¿ya terminaste?</p>
+ <h2>TAMBIÉN TE PUEDE <em>GUSTAR.</em></h2>
+ <p class="lead" style="margin-inline:auto">Prueba otro juego con el mismo personaje de pelo verde: un endless runner 3D.</p>
+ <a class="mas-card" href="../index.html" style="text-decoration:none;color:inherit">
+  <img src="../img/runner_hero.jpg" alt="Runner Urbano: el bromista de pelo verde" loading="lazy" style="object-fit:cover;object-position:top;aspect-ratio:16/10">
+  <div>
+   <span class="tag2">ENDLESS RUNNER 3D</span>
+   <h3>RUNNER URBANO</h3>
+   <p>Corre, salta, agáchate y esquiva los obstáculos de la calle. Ríe último.</p>
+   <span class="btn p">JUGAR AHORA →</span>
+  </div>
+ </a>
+</section>
+</main>
+
+<footer>
+ <a class="logo" href="#inicio">CIUDAD <b>SANGRIENTA</b> ♠</a>
+ <p>Proyecto de Game Development · Unidad 3 · © 2026</p>
+ <p>Desarrollado por Harold Abdel Carpio Santander.</p>
+ <p><a href="#inicio">Volver arriba ↑</a></p>
+</footer>
+<script>
+(function(){
+ // Fondo de risas tipo créditos
+ var box=document.getElementById('jaja'),t=['SECTOR CERO','001','ESCAPA','36','¡CORRE!'];
+ for(var i=0;i<16;i++){var s=document.createElement('span');
+  s.textContent=t[i%t.length];
+  s.style.cssText='left:'+(Math.random()*90-5)+'%;top:'+(i*6.4)+'%;font-size:'+(2+Math.random()*5)+'rem;transform:rotate('+(Math.random()*40-20)+'deg)';
+  if(i%3==0)s.className='g';box.appendChild(s);}
+ // Clic en el personaje: carcajada
+ var c=document.getElementById('card');
+ c.addEventListener('click',function(e){
+  for(var i=0;i<5;i++){var j=document.createElement('div');j.className='ja';
+   j.textContent=['BUM!','¡CORRE!','¡ESCAPA!','001'][Math.floor(Math.random()*4)];
+   j.style.left=(e.clientX+Math.random()*120-60)+'px';j.style.top=(e.clientY+Math.random()*60-30)+'px';
+   j.style.fontSize=(1.6+Math.random()*2)+'rem';j.style.setProperty('--r',(Math.random()*60-30)+'deg');
+   document.body.appendChild(j);setTimeout(function(x){x.remove()}.bind(null,j),1300);}
+ });
+ // Juego en la misma página
+ var f=document.getElementById('game'),sc=document.getElementById('screen');
+ document.getElementById('fs').onclick=function(){try{(sc.requestFullscreen||sc.webkitRequestFullscreen).call(sc)}catch(e){}};
+ document.getElementById('rl').onclick=function(){f.src=f.src};
+})();
+</script>
+</body>
+</html>
